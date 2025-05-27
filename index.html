@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Flappy - Gambling Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+            border: 4px solid #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .game-canvas {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+        }
+
+        .rocket {
+            position: absolute;
+            width: 40px;
+            height: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border-radius: 50% 10px 50% 10px;
+            transition: transform 0.1s ease;
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+        }
+
+        .rocket::before {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 15px solid #ff4757;
+            opacity: 0.8;
+        }
+
+        .rocket::after {
+            content: '🔥';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            animation: flame 0.2s infinite alternate;
+        }
+
+        @keyframes flame {
+            0% { transform: translateX(-50%) scale(1); }
+            100% { transform: translateX(-50%) scale(1.2); }
+        }
+
+        .pipe {
+            position: absolute;
+            width: 60px;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border: 3px solid #1e8449;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .pipe-top {
+            top: 0;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .pipe-bottom {
+            bottom: 0;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+
+        .multiplier {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            border: 2px solid #d35400;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            animation: pulse 1s infinite;
+            z-index: 5;
+        }
+
+        .multiplier.negative {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            border-color: #a93226;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            pointer-events: auto;
+        }
+
+        .score-item {
+            display: flex;
+            align-items: center;
+            margin: 2px 0;
+            font-weight: bold;
+        }
+
+        .money-display {
+            color: #27ae60;
+            font-size: 16px;
+        }
+
+        .score-number {
+            color: #3498db;
+            font-size: 14px;
+        }
+
+        .start-screen, .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 30;
+            pointer-events: auto;
+        }
+
+        .game-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .game-button {
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            margin: 10px;
+        }
+
+        .game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .game-button:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            text-align: center;
+            margin: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .final-stats {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+
+        .stat-item {
+            margin: 5px 0;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .clouds {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .cloud {
+            position: absolute;
+            background: rgba(255,255,255,0.7);
+            border-radius: 50px;
+            animation: float 15s linear infinite;
+        }
+
+        .cloud::before,
+        .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.7);
+            border-radius: 50px;
+        }
+
+        .cloud1 {
+            width: 60px;
+            height: 20px;
+            top: 10%;
+            animation-delay: 0s;
+        }
+
+        .cloud1::before {
+            width: 30px;
+            height: 30px;
+            top: -15px;
+            left: 10px;
+        }
+
+        .cloud1::after {
+            width: 40px;
+            height: 25px;
+            top: -10px;
+            right: 10px;
+        }
+
+        .cloud2 {
+            width: 80px;
+            height: 25px;
+            top: 25%;
+            animation-delay: -5s;
+        }
+
+        .cloud2::before {
+            width: 40px;
+            height: 40px;
+            top: -20px;
+            left: 15px;
+        }
+
+        .cloud2::after {
+            width: 50px;
+            height: 30px;
+            top: -15px;
+            right: 15px;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(-100px); }
+            100% { transform: translateX(450px); }
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #feca57;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        @keyframes collect-particle {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(2) translateY(-30px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-canvas" id="gameCanvas">
+            <!-- Background clouds -->
+            <div class="clouds">
+                <div class="cloud cloud1"></div>
+                <div class="cloud cloud2"></div>
+            </div>
+
+            <!-- Rocket -->
+            <div class="rocket" id="rocket"></div>
+        </div>
+
+        <!-- UI Overlay -->
+        <div class="ui-overlay">
+            <div class="score-display">
+                <div class="score-item money-display">💰 $<span id="money">100</span></div>
+                <div class="score-item score-number">📊 <span id="score">0</span></div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div class="start-screen" id="startScreen">
+            <div class="game-title">🚀 Rocket Flappy 🎰</div>
+            <div class="instructions">
+                <p><strong>How to Play:</strong></p>
+                <p>• Click or press SPACE to boost rocket</p>
+                <p>• Pass through pipes to earn points</p>
+                <p>• Collect multipliers for bonus money!</p>
+                <p>• 💚 Green = 2x money • 🔴 Red = 0.5x money</p>
+                <p>• Don't crash into pipes!</p>
+            </div>
+            <button class="game-button" onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div class="game-over-screen" id="gameOverScreen" style="display: none;">
+            <div class="game-title">Game Over! 💥</div>
+            <div class="final-stats">
+                <div class="stat-item">Final Score: <span id="finalScore">0</span></div>
+                <div class="stat-item">Money Earned: $<span id="finalMoney">0</span></div>
+                <div class="stat-item">Best Score: <span id="bestScore">0</span></div>
+            </div>
+            <button class="game-button" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        class RocketFlappyGame {
+            constructor() {
+                this.gameCanvas = document.getElementById('gameCanvas');
+                this.rocket = document.getElementById('rocket');
+                this.startScreen = document.getElementById('startScreen');
+                this.gameOverScreen = document.getElementById('gameOverScreen');
+                
+                this.gameState = 'start'; // 'start', 'playing', 'gameOver'
+                this.score = 0;
+                this.money = 100;
+                this.bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
+                
+                this.rocketY = 250;
+                this.rocketVelocity = 0;
+                this.gravity = 0.6;
+                this.jumpPower = -12;
+                
+                this.pipes = [];
+                this.multipliers = [];
+                this.pipeSpeed = 2;
+                this.pipeSpawnRate = 120;
+                this.frameCount = 0;
+                
+                this.gameWidth = 400;
+                this.gameHeight = 600;
+                this.pipeGap = 150;
+                
+                this.initializeGame();
+            }
+            
+            initializeGame() {
+                this.updateDisplay();
+                document.getElementById('bestScore').textContent = this.bestScore;
+                
+                // Event listeners
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.handleInput();
+                    }
+                });
+                
+                this.gameCanvas.addEventListener('click', () => {
+                    this.handleInput();
+                });
+                
+                // Start game loop
+                this.gameLoop();
+            }
+            
+            handleInput() {
+                if (this.gameState === 'playing') {
+                    this.rocketVelocity = this.jumpPower;
+                    this.rocket.style.transform = 'rotate(-20deg)';
+                    setTimeout(() => {
+                        this.rocket.style.transform = 'rotate(0deg)';
+                    }, 100);
+                }
+            }
+            
+            startGame() {
+                this.gameState = 'playing';
+                this.startScreen.style.display = 'none';
+                this.gameOverScreen.style.display = 'none';
+                this.resetGame();
+            }
+            
+            resetGame() {
+                this.score = 0;
+                this.money = 100;
+                this.rocketY = 250;
+                this.rocketVelocity = 0;
+                this.pipes = [];
+                this.multipliers = [];
+                this.frameCount = 0;
+                this.pipeSpeed = 2;
+                this.updateDisplay();
+                this.clearPipes();
+            }
+            
+            restartGame() {
+                this.gameState = 'start';
+                this.gameOverScreen.style.display = 'none';
+                this.startScreen.style.display = 'flex';
+                this.resetGame();
+            }
+            
+            updateRocket() {
+                if (this.gameState !== 'playing') return;
+                
+                this.rocketVelocity += this.gravity;
+                this.rocketY += this.rocketVelocity;
+                
+                // Boundary checks
+                if (this.rocketY < 0) {
+                    this.rocketY = 0;
+                    this.rocketVelocity = 0;
+                }
+                
+                if (this.rocketY > this.gameHeight - 30) {
+                    this.gameOver();
+                }
+                
+                this.rocket.style.top = this.rocketY + 'px';
+                this.rocket.style.left = '80px';
+            }
+            
+            spawnPipe() {
+                const pipeHeight = Math.random() * 200 + 100;
+                const pipeTop = pipeHeight;
+                const pipeBottom = this.gameHeight - pipeHeight - this.pipeGap;
+                
+                const pipeData = {
+                    x: this.gameWidth,
+                    topHeight: pipeTop,
+                    bottomHeight: pipeBottom,
+                    passed: false,
+                    id: Date.now()
+                };
+                
+                this.pipes.push(pipeData);
+                this.createPipeElements(pipeData);
+                
+                // Spawn multiplier
+                this.spawnMultiplier(pipeData);
+            }
+            
+            spawnMultiplier(pipeData) {
+                const isPositive = Math.random() > 0.4; // 60% chance for positive multiplier
+                const multiplier = {
+                    x: pipeData.x + 30,
+                    y: pipeData.topHeight + this.pipeGap / 2 - 15,
+                    value: isPositive ? 2 : 0.5,
+                    collected: false,
+                    id: pipeData.id + '_mult'
+                };
+                
+                this.multipliers.push(multiplier);
+                this.createMultiplierElement(multiplier);
+            }
+            
+            createPipeElements(pipeData) {
+                // Top pipe
+                const topPipe = document.createElement('div');
+                topPipe.className = 'pipe pipe-top';
+                topPipe.id = 'pipe-top-' + pipeData.id;
+                topPipe.style.left = pipeData.x + 'px';
+                topPipe.style.height = pipeData.topHeight + 'px';
+                this.gameCanvas.appendChild(topPipe);
+                
+                // Bottom pipe
+                const bottomPipe = document.createElement('div');
+                bottomPipe.className = 'pipe pipe-bottom';
+                bottomPipe.id = 'pipe-bottom-' + pipeData.id;
+                bottomPipe.style.left = pipeData.x + 'px';
+                bottomPipe.style.height = pipeData.bottomHeight + 'px';
+                this.gameCanvas.appendChild(bottomPipe);
+            }
+            
+            createMultiplierElement(multiplier) {
+                const multElement = document.createElement('div');
+                multElement.className = 'multiplier' + (multiplier.value < 1 ? ' negative' : '');
+                multElement.id = 'mult-' + multiplier.id;
+                multElement.style.left = multiplier.x + 'px';
+                multElement.style.top = multiplier.y + 'px';
+                multElement.textContent = multiplier.value + 'x';
+                this.gameCanvas.appendChild(multElement);
+            }
+            
+            updatePipes() {
+                if (this.gameState !== 'playing') return;
+                
+                // Spawn new pipes
+                if (this.frameCount % this.pipeSpawnRate === 0) {
+                    this.spawnPipe();
+                }
+                
+                // Update existing pipes
+                for (let i = this.pipes.length - 1; i >= 0; i--) {
+                    const pipe = this.pipes[i];
+                    pipe.x -= this.pipeSpeed;
+                    
+                    // Update pipe elements
+                    const topPipe = document.getElementById('pipe-top-' + pipe.id);
+                    const bottomPipe = document.getElementById('pipe-bottom-' + pipe.id);
+                    
+                    if (topPipe && bottomPipe) {
+                        topPipe.style.left = pipe.x + 'px';
+                        bottomPipe.style.left = pipe.x + 'px';
+                    }
+                    
+                    // Check for scoring
+                    if (!pipe.passed && pipe.x + 60 < 80) {
+                        pipe.passed = true;
+                        this.score++;
+                        this.money += 10;
+                        this.updateDisplay();
+                        
+                        // Increase difficulty
+                        if (this.score % 5 === 0) {
+                            this.pipeSpeed += 0.3;
+                            this.pipeSpawnRate = Math.max(90, this.pipeSpawnRate - 5);
+                        }
+                    }
+                    
+                    // Check collision
+                    if (this.checkCollision(pipe)) {
+                        this.gameOver();
+                        return;
+                    }
+                    
+                    // Remove off-screen pipes
+                    if (pipe.x < -60) {
+                        this.removePipe(pipe);
+                        this.pipes.splice(i, 1);
+                    }
+                }
+                
+                // Update multipliers
+                this.updateMultipliers();
+            }
+            
+            updateMultipliers() {
+                for (let i = this.multipliers.length - 1; i >= 0; i--) {
+                    const mult = this.multipliers[i];
+                    mult.x -= this.pipeSpeed;
+                    
+                    const multElement = document.getElementById('mult-' + mult.id);
+                    if (multElement) {
+                        multElement.style.left = mult.x + 'px';
+                    }
+                    
+                    // Check collection
+                    if (!mult.collected && this.checkMultiplierCollision(mult)) {
+                        mult.collected = true;
+                        this.collectMultiplier(mult);
+                        if (multElement) {
+                            multElement.remove();
+                        }
+                    }
+                    
+                    // Remove off-screen multipliers
+                    if (mult.x < -50) {
+                        if (multElement) {
+                            multElement.remove();
+                        }
+                        this.multipliers.splice(i, 1);
+                    }
+                }
+            }
+            
+            checkCollision(pipe) {
+                const rocketLeft = 80;
+                const rocketRight = 120;
+                const rocketTop = this.rocketY;
+                const rocketBottom = this.rocketY + 30;
+                
+                const pipeLeft = pipe.x;
+                const pipeRight = pipe.x + 60;
+                
+                if (rocketRight > pipeLeft && rocketLeft < pipeRight) {
+                    if (rocketTop < pipe.topHeight || rocketBottom > this.gameHeight - pipe.bottomHeight) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            checkMultiplierCollision(mult) {
+                const rocketLeft = 80;
+                const rocketRight = 120;
+                const rocketTop = this.rocketY;
+                const rocketBottom = this.rocketY + 30;
+                
+                const multLeft = mult.x;
+                const multRight = mult.x + 50;
+                const multTop = mult.y;
+                const multBottom = mult.y + 30;
+                
+                return rocketRight > multLeft && rocketLeft < multRight &&
+                       rocketBottom > multTop && rocketTop < multBottom;
+            }
+            
+            collectMultiplier(mult) {
+                const earnedMoney = Math.floor(this.money * mult.value) - this.money;
+                this.money = Math.max(0, Math.floor(this.money * mult.value));
+                
+                // Create particle effect
+                this.createParticleEffect(mult.x + 25, mult.y + 15, mult.value > 1);
+                
+                this.updateDisplay();
+            }
+            
+            createParticleEffect(x, y, positive) {
+                for (let i = 0; i < 8; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.background = positive ? '#27ae60' : '#e74c3c';
+                    particle.style.animation = 'collect-particle 0.8s ease-out forwards';
+                    particle.style.animationDelay = (i * 0.1) + 's';
+                    
+                    const angle = (i / 8) * Math.PI * 2;
+                    const distance = 30;
+                    const endX = x + Math.cos(angle) * distance;
+                    const endY = y + Math.sin(angle) * distance;
+                    
+                    particle.style.transform = `translate(${endX - x}px, ${endY - y}px)`;
+                    
+                    this.gameCanvas.appendChild(particle);
+                    
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.remove();
+                        }
+                    }, 800);
+                }
+            }
+            
+            removePipe(pipe) {
+                const topPipe = document.getElementById('pipe-top-' + pipe.id);
+                const bottomPipe = document.getElementById('pipe-bottom-' + pipe.id);
+                if (topPipe) topPipe.remove();
+                if (bottomPipe) bottomPipe.remove();
+            }
+            
+            clearPipes() {
+                const pipes = this.gameCanvas.querySelectorAll('.pipe, .multiplier, .particle');
+                pipes.forEach(pipe => pipe.remove());
+            }
+            
+            updateDisplay() {
+                document.getElementById('money').textContent = this.money;
+                document.getElementById('score').textContent = this.score;
+            }
+            
+            gameOver() {
+                this.gameState = 'gameOver';
+                
+                // Update best score
+                if (this.score > this.bestScore) {
+                    this.bestScore = this.score;
+                    localStorage.setItem('bestScore', this.bestScore.toString());
+                }
+                
+                // Show game over screen
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('finalMoney').textContent = this.money;
+                document.getElementById('bestScore').textContent = this.bestScore;
+                this.gameOverScreen.style.display = 'flex';
+            }
+            
+            gameLoop() {
+                this.frameCount++;
+                this.updateRocket();
+                this.updatePipes();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+        
+        // Global functions for buttons
+        let game;
+        
+        function startGame() {
+            game.startGame();
+        }
+        
+        function restartGame() {
+            game.restartGame();
+        }
+        
+        // Initialize game when page loads
+        window.addEventListener('load', () => {
+            game = new RocketFlappyGame();
+        });
+    </script>
+</body>
+</html>
