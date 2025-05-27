@@ -397,18 +397,18 @@
                 
                 this.rocketY = 250;
                 this.rocketVelocity = 0;
-                this.gravity = 0.6;
-                this.jumpPower = -12;
+                this.gravity = 0.4;
+                this.jumpPower = -8;
                 
                 this.pipes = [];
                 this.multipliers = [];
-                this.pipeSpeed = 2;
-                this.pipeSpawnRate = 120;
+                this.pipeSpeed = 1.5;
+                this.pipeSpawnRate = 150;
                 this.frameCount = 0;
                 
                 this.gameWidth = 400;
                 this.gameHeight = 600;
-                this.pipeGap = 150;
+                this.pipeGap = 180;
                 
                 this.initializeGame();
             }
@@ -458,7 +458,7 @@
                 this.pipes = [];
                 this.multipliers = [];
                 this.frameCount = 0;
-                this.pipeSpeed = 2;
+                this.pipeSpeed = 1.5;
                 this.updateDisplay();
                 this.clearPipes();
             }
@@ -581,10 +581,10 @@
                         this.money += 10;
                         this.updateDisplay();
                         
-                        // Increase difficulty
-                        if (this.score % 5 === 0) {
-                            this.pipeSpeed += 0.3;
-                            this.pipeSpawnRate = Math.max(90, this.pipeSpawnRate - 5);
+                        // Increase difficulty more gradually
+                        if (this.score % 8 === 0) {
+                            this.pipeSpeed += 0.2;
+                            this.pipeSpawnRate = Math.max(120, this.pipeSpawnRate - 3);
                         }
                     }
                     
@@ -635,10 +635,10 @@
             }
             
             checkCollision(pipe) {
-                const rocketLeft = 80;
-                const rocketRight = 120;
-                const rocketTop = this.rocketY;
-                const rocketBottom = this.rocketY + 30;
+                const rocketLeft = 85;
+                const rocketRight = 115;
+                const rocketTop = this.rocketY + 5;
+                const rocketBottom = this.rocketY + 25;
                 
                 const pipeLeft = pipe.x;
                 const pipeRight = pipe.x + 60;
